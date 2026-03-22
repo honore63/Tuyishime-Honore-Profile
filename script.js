@@ -158,11 +158,8 @@ ${message}`
   return getFallbackResponse(message);
 }
 
-const videoGrid = document.getElementById('video-grid');
-const ytPlayer = document.getElementById('yt-player');
-const nowPlaying = document.getElementById('now-playing');
-
 function setNowPlaying(title) {
+  const nowPlaying = document.getElementById('now-playing');
   if (nowPlaying) nowPlaying.textContent = `Now Playing: ${title}`;
 }
 
@@ -233,6 +230,7 @@ function createCard(video) {
 }
 
 function loadVideo(videoId) {
+  const ytPlayer = document.getElementById('yt-player');
   if (!ytPlayer) return;
   ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
 
@@ -243,6 +241,7 @@ function loadVideo(videoId) {
 }
 
 async function initVideos() {
+  const videoGrid = document.getElementById('video-grid');
   if (!videoGrid) return; // Only initialize if element exists
 
   videos.forEach((video) => {
@@ -290,8 +289,6 @@ async function initVideos() {
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
-
-initVideos();
 
 function appendChatMessage(text, sender) {
   const container = document.getElementById('ai-messages');
