@@ -537,7 +537,7 @@ console.log('%c🤖 HONORE AI CHAT READY', 'color: #228b22; font-size: 14px; fon
 console.log('%c📝 To enable AI responses: Open console and paste:\nsetOpenAIKey("sk-proj-YOUR-KEY-HERE")', 'color: #FF6B35; font-size: 12px;');
 console.log('%cThen chat will show real AI responses with thinking bubbles! 🧠', 'color: #4a584a; font-size: 12px;');
 
-async function getChatResponse(message) {
+async function getChatResponseOpenAI(message) {
   try {
     // If no API key, use fallback
     if (!OPENAI_API_KEY) {
@@ -642,7 +642,7 @@ function initChat() {
   // Make toggle button use a small avatar when collapsed
   if (!toggle.querySelector('.ai-avatar-mini')) {
     const avatar = document.createElement('img');
-    avatar.src = 'profile.jpg';
+    avatar.src = 'Images/WhatsApp Image 2026-03-10 at 12.18.51 PM (1).jpeg';
     avatar.alt = 'AI chat';
     avatar.className = 'ai-avatar-mini';
     avatar.role = 'button';
@@ -705,7 +705,7 @@ function initChat() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       typingIndicator.remove();
 
-      const response = await getChatResponse(value);
+      const response = await getChatResponseOpenAI(value);
       appendChatMessageEnhanced(response, 'bot');
     } catch (error) {
       typingIndicator.remove();
