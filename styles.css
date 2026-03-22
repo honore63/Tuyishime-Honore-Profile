@@ -2960,3 +2960,173 @@ body.home .floating-avatar {
   margin-bottom: 0;
   color: #555;
 }
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 768px) {
+  :root {
+    --font-size-base: 14px;
+    --radius: 16px;
+  }
+
+  /* Reset Scrollbar for Mobile */
+  html, body {
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+    overflow-x: hidden;
+  }
+
+  .container {
+    padding: 0 1rem;
+    width: 100%;
+  }
+
+  /* Compact Navigation for Mobile */
+  .nav {
+    flex-direction: column;
+    padding: 1.2rem 1rem;
+    position: relative;
+    background: var(--green-dark);
+    gap: 1rem;
+  }
+
+  .nav-brand {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .nav a {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Hero Section Responsiveness */
+  header {
+    min-height: auto;
+    padding: 4rem 1rem;
+  }
+
+  .hero-inner {
+    margin-top: 1rem;
+    gap: 1.25rem;
+  }
+
+  .hero-title {
+    font-size: 3rem !important;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .hero-avatar {
+    width: 180px;
+    border-width: 4px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+  }
+
+  /* Profile Card Stacks on Mobile */
+  .profile-card {
+    flex-direction: column !important;
+    text-align: center;
+    padding: 2rem 1rem !important;
+  }
+
+  .profile-image-container {
+    width: 130px !important;
+    height: 130px !important;
+    margin: 0 auto 1.5rem !important;
+  }
+
+  .profile-content {
+    padding: 0 !important;
+  }
+
+  .profile-name {
+    font-size: 2rem !important;
+  }
+
+  /* Card Grids for Mobile */
+  .card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1.5rem !important;
+  }
+
+  .section-title {
+    font-size: 2.2rem !important;
+  }
+
+  /* AI Widget Mobile Optimization */
+  .ai-widget {
+    bottom: 15px;
+    right: 15px;
+    left: 15px;
+    width: auto;
+  }
+
+  .ai-widget.collapsed {
+    left: auto;
+    width: auto;
+  }
+
+  .ai-panel {
+    bottom: 80px;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 120px);
+    max-height: 500px;
+    border-radius: 20px;
+  }
+
+  .ai-toggle {
+    width: 100%;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  /* Quote Block */
+  .quote-block {
+    padding: 1.5rem;
+  }
+
+  .quote-block blockquote {
+    font-size: 1.1rem;
+  }
+
+  /* Timeline for Mobile */
+  .timeline::after {
+    left: 20px;
+  }
+
+  .timeline-item {
+    padding-left: 50px;
+  }
+
+  .timeline-item::after {
+    left: 12px;
+  }
+
+  .timeline-content {
+    padding: 1.5rem;
+    margin-left: 0;
+  }
+}

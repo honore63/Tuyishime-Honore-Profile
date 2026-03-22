@@ -2,6 +2,7 @@
   "version": 2,
   "name": "honore-profile-web",
   "rewrites": [
+    { "source": "/images/(.*)", "destination": "/Images/$1" },
     { "source": "/", "destination": "/index.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/roles", "destination": "/roles.html" },
