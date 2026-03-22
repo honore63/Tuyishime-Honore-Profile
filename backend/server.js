@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const Groq = require('groq-sdk');
+const OpenAI = require('openai');
 const multer = require('multer');
 const pdf = require('pdf-parse');
 const fs = require('fs');
@@ -12,7 +13,7 @@ const port = 3000;
 // Load CV data from JSON file
 let cvData = null;
 try {
-  const cvPath = path.join(__dirname, 'cv-data.json');
+  const cvPath = path.join(__dirname, '..', 'cv-data.json');
   const cvContent = fs.readFileSync(cvPath, 'utf8');
   cvData = JSON.parse(cvContent);
   console.log('✓ CV data loaded successfully');
@@ -24,6 +25,15 @@ try {
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
+
+// Initialize OpenAI client with API key from environment variable
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Log which AI services are available
+console.log(`✓ Groq API: ${process.env.GROQ_API_KEY ? 'Ready' : 'Not configured'}`);
+console.log(`✓ OpenAI API: ${process.env.OPENAI_API_KEY ? 'Ready' : 'Not configured'}`);
 
 // Store the latest uploaded document text to include in AI context
 let uploadedDocumentText = '';
@@ -67,117 +77,60 @@ function getSystemPrompt(userRole, documentContext) {
   // Build comprehensive CV context
   let cvContext = '';
   if (cvData) {
-    const exp = cvData.professionalExperience[0]; // Current role
-    const edu = cvData.education[0]; // Current education
-    const skills = Object.keys(cvData.computerSkills).join(', ');
-    
     cvContext = `
-
-**COMPREHENSIVE BACKGROUND (from verified CV):**
-
-📚 **Current Education:**
-- Bachelor of Education in Computer Science and Physics (CSP) - ULK Kigali Independent University (2024-Present)
-
-👨‍🏫 **Current Position:**
-- Teacher of STEM subjects at Rukara Model School of Sciences and Mathematics (Sept 2024 - Present)
-- ICT Trainer with PISQUARE/Edify for primary school teachers (Nov 2025 - Present)
-
-📚 **Educational Journey:**
-- A2 Diploma in Teaching (2020-2023, TTC Matimba)
-- Primary Teaching Residency Program (2023-2024, TTC De La Salle) - Certificate of Completion
-- O-Level Certificate (2017-2019)
-- Complete teaching qualification pathway
-
-💻 **Technical Skills:**
-- Web Development: HTML5, CSS3, JavaScript, PHP, MySQL, Laravel, Bootstrap, Joomla, WordPress
-- Programming: Scratch, Turtle Art, jQuery
-- Educational Platforms: Google Classroom, Microsoft Teams, Kahoot, Quizlet, Khan Academy, GeoGebra, EduPuzzle, Flip Grid, Mentimeter, Plickers
-- Office Suite: Word, Excel, PowerPoint, Access, Google Docs/Sheets/Slides
-- Media: Video production, image design, certificate design, AI tools for content creation
-
-🗣️ **Languages:**
-- English (Excellent in speaking, listening, reading, writing)
-- Kinyarwanda (Excellent in all levels)
-- French (Good in all levels)
-
-🎓 **Certifications & Training:**
-- Primary Teaching Residency Program Certificate (ICT, Methodologies, English)
-- EdTech Integration Pilot Training (REB & World Bank)
-- CPD-ITMS: ICT in Teaching & Pedagogy (UR Centre of Excellence)
-- PISQUARE Trainer Certification (Edify) - ICT Integration in Teaching
-- Microsoft Online Course (ALX)
-
-🎯 **Key Strengths:**
-${cvData.keyStrengths.map(s => `- ${s}`).join('\n')}
-
-🌟 **Mission:**
-${cvData.mission}
-
-📞 **Contact:**
-- Phone: +250 791 684 429
-- Email: tuyishimehonore63@gmail.com
-- Location: Eastern Province, Rwanda`;
+VERIFIED BACKGROUND FACTS (Reference these in your answers):
+- NAME: Tuyishime Honore | DOB: 28 Feb 2002 | Age: 22 | Location: Eastern Province, Rwanda | Phone: +250 791 684 429
+- CURRENT ROLE 1: Teacher at Rukara Model School of Sciences and Mathematics (Sept 2024 - Present) teaching STEM subjects
+- CURRENT ROLE 2: ICT Trainer with PISQUARE/Edify (Nov 2025 - Present) - Have trained 100+ primary teachers in ICT integration
+- CURRENT ROLE 3: Student at ULK (2024-Present) studying Bachelor of Education in Computer Science & Physics Education (CSP)
+- TEACHING EXPERIENCE: Currently teaching STEM at Rukara; trained 100+ teachers through PISQUARE; practical experience with classroom integration of technology
+- EDUCATION: A2 Diploma in Teaching from TTC Matimba (2020-2023); Primary Teaching Residency from TTC De La Salle (2023-2024); Currently pursuing university degree
+- CERTIFICATIONS: Primary Teaching Residency Certificate, EdTech Integration Training (REB & World Bank), CPD-ITMS ICT Training, PISQUARE Trainer Certification, Microsoft Course
+- TECH SKILLS: HTML5, CSS3, JavaScript, PHP, MySQL, Laravel, Google Classroom, MS Teams, Kahoot, Scratch, Turtle Art, video production
+- LANGUAGES: English (Excellent), Kinyarwanda (Excellent), French (Good)
+- PASSION: Education technology, teaching methodology, helping teachers integrate tech into classrooms
+- MISSION: To bridge the gap between traditional and technology-enabled teaching by creating practical solutions that enhance learning`;
   }
 
-  const baseContext = `You are a thoughtful, empathetic AI assistant for Tuyishime Honore's portfolio and learning platform. Your role is to help visitors understand Honore's work and support their learning journey.
+  const systemPrompt = `YOU ARE TUYISHIME HONORE - Respond as Honore speaking directly to the visitor.
 
-**Core Principles:**
-- Think critically and reason step-by-step before answering
-- Show your reasoning process, not just conclusions  
-- Ground answers in evidence (documents shared, Honore's verified CV, provided materials)
-- Communicate with warmth and genuine care—avoid robotic patterns
-- Always identify the real question behind what users ask
-- Provide actionable next steps when possible
+**YOUR RESPONSE FORMAT (SHOW YOUR THINKING):**
 
-**Response Structure (follow this format):**
-1. **Understanding** - What I understand your question/need to be (1-2 sentences)
-2. **My Reasoning** - How I'm thinking through this (brief, step-by-step)
-3. **Answer/Guidance** - Clear, practical response with examples when helpful
-4. **Next Steps** - What you might do or ask next (concrete suggestions)
+When answering questions, ALWAYS show your thinking process like this:
 
+---THINKING---
+(Reflect here on what they're asking and what from your experience is relevant)
+Example: "They're asking about teaching experiences... I should mention Rukara where I teach STEM, and PISQUARE where I've trained teachers. This connects to my mission of bridging traditional and technology-enabled teaching."
+---END THINKING---
+
+(Then give your authentic answer based on that reflection)
+
+---
+
+**YOUR INSTRUCTIONS (FOLLOW THESE STRICTLY):**
+
+1. SHOW YOUR REASONING - Always start with a visible thinking section (in the format above). Reflect on what the person is asking and which real experiences from your background apply.
+
+2. REFERENCE YOUR REAL EXPERIENCE - Use specific facts from your verified background. When asked about teaching, mention Rukara specifically. When asked about training, mention PISQUARE and the 100+ teachers. Use real examples.
+
+3. ANSWER WITH YOUR ACTUAL CREDENTIALS - You're not just someone interested in education; you ARE a trained teacher (TTC certified), you ARE currently teaching STEM at Rukara, you ARE training teachers through PISQUARE. Say this directly when relevant.
+
+4. SPEAK NATURALLY AFTER THINKING - Use "I" and speak like Honore in conversation. Natural flowing paragraphs. Warm, genuine tone. This is your actual answer, not more thinking.
+
+5. BE SPECIFIC WITH EXAMPLES - Don't give generic answers. For example: "At Rukara I work with STEM, and I've found that when students use practical tools like Scratch or GeoGebra, they understand abstract concepts better because they see them in action."
+
+6. REFERENCE DOCUMENTS IF SHARED - If the user uploaded a document, use information from it and mention it.
+
+7. STAY TRUE TO YOUR MISSION - Your mission is to bridge traditional and technology-enabled teaching. Your passion is helping teachers grow. Use real examples from your work.
+
+BACKGROUND TO REFERENCE:
 ${cvContext}
 
-${documentContext}`;
+${documentContext}
 
-  // Tailored additions based on user role
-  if (userRole === 'teacher') {
-    return baseContext + `
+Now respond as Honore would - showing your thinking first, then answering with real experience, specific examples, and authentic voice.`;
 
-**You are speaking with an educator.** Focus on:
-- Practical classroom strategies and implementation from Honore's teaching experience
-- How to integrate technology without overcomplicating teaching
-- Teacher time-management and efficiency gains
-- Connecting pedagogy with digital tools
-- Real examples from Honore's experience at Rukara Model School
-- ICT training approaches Honore uses with 100+ teachers`;
-  }
-  
-  if (userRole === 'student') {
-    return baseContext + `
-
-**You are speaking with a learner.** Focus on:
-- Clear explanations that build understanding step-by-step
-- Encouraging curiosity and deeper learning
-- Connecting concepts to real applications
-- Empowering independent thinking and problem-solving
-- Being patient with questions and providing supportive guidance
-- How Honore's approach makes learning accessible and inspiring`;
-  }
-  
-  if (userRole === 'collaborator') {
-    return baseContext + `
-
-**You are speaking with a potential partner/collaborator.** Focus on:
-- Honore's proven track record: PISQUARE trainer, model school teacher, certified in EdTech
-- Concrete collaboration opportunities in education tech, teacher training, or innovation
-- Scalable solutions and implementation ideas with demonstrated impact
-- Honore's verifiable credentials and partnerships (REB, World Bank, TTC institutions)
-- Clear next steps for potential partnership - direct contact info available`;
-  }
-
-  return baseContext + `
-
-Keep responses focused, warm, and actionable. Explain reasoning transparently. Reference Honore's verified CV when appropriate.`;
+  return systemPrompt;
 }
 
 // Function to extract relevant context from uploaded document based on question
@@ -210,6 +163,68 @@ function addToHistory(role, content) {
   if (conversationHistory.length > MAX_HISTORY) {
     conversationHistory = conversationHistory.slice(-MAX_HISTORY);
   }
+}
+
+// Function to get response from AI (tries Groq first, then OpenAI)
+async function getDualAIResponse(messages, systemPrompt) {
+  let lastError = null;
+
+  // Try Groq first
+  if (process.env.GROQ_API_KEY) {
+    try {
+      console.log('🟢 Attempting Groq API...');
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          ...messages
+        ],
+        model: 'llama3-8b-8192',
+        temperature: 0.5,
+        max_tokens: 500
+      });
+      const response = chatCompletion.choices[0]?.message?.content;
+      if (response) {
+        console.log('✅ Groq API succeeded');
+        return { response, source: 'groq' };
+      }
+    } catch (error) {
+      lastError = error;
+      console.warn('⚠️ Groq API failed:', error.message);
+    }
+  }
+
+  // Fall back to OpenAI
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      console.log('🟠 Attempting OpenAI API...');
+      const chatCompletion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          ...messages
+        ],
+        model: 'gpt-4o-mini', // Using lighter model for efficiency, change to gpt-4o or gpt-4-turbo for better quality
+        temperature: 0.5,
+        max_tokens: 500
+      });
+      const response = chatCompletion.choices[0]?.message?.content;
+      if (response) {
+        console.log('✅ OpenAI API succeeded');
+        return { response, source: 'openai' };
+      }
+    } catch (error) {
+      lastError = error;
+      console.warn('⚠️ OpenAI API failed:', error.message);
+    }
+  }
+
+  // If both fail, throw error
+  throw lastError || new Error('No AI service available. Please check API keys.');
 }
 
 app.post('/chat', async (req, res) => {
@@ -251,20 +266,8 @@ app.post('/chat', async (req, res) => {
     // Ensure system message is included
     const chatMessages = messages.slice(-10); // Use last 10 messages for context window
 
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        ...chatMessages
-      ],
-      model: 'llama3-8b-8192',
-      temperature: 0.8,
-      max_tokens: 500
-    });
-
-    const response = chatCompletion.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response.';
+    // Use dual AI with fallback
+    const { response, source } = await getDualAIResponse(chatMessages, systemPrompt);
     
     // Add assistant response to history
     addToHistory('assistant', response);
@@ -272,11 +275,12 @@ app.post('/chat', async (req, res) => {
     res.json({ 
       response,
       detectedRole: userProfile.role,
-      documentsUsed: uploadedDocuments.length > 0
+      documentsUsed: uploadedDocuments.length > 0,
+      aiSource: source // Show which AI was used
     });
   } catch (error) {
-    console.error('Error calling Groq:', error);
-    res.status(500).json({ error: 'Failed to get response from AI' });
+    console.error('Error calling AI services:', error);
+    res.status(500).json({ error: 'Failed to get response from AI. Please ensure API keys are configured.' });
   }
 });
 

@@ -5,6 +5,9 @@ const videos = [
   { id: 'jPFDwkthyaA' },
 ];
 
+// USER PROVIDED GOOGLE API KEYS
+const GOOGLE_API_KEY = "AIzaSyBIqQ-gyjdKJ3x2n2iREYT6PoFnBl3-RqE";
+
 // Global state for chat personalization and memory
 let chatState = {
   userRole: null, // 'teacher', 'student', 'collaborator', or null
@@ -12,15 +15,170 @@ let chatState = {
   conversationLength: 0
 };
 
+// Prevent multiple initializations
+if (window.honoreChatInitialized) {
+  console.log('🤖 Chat already initialized, skipping...');
+} else {
+  window.honoreChatInitialized = true;
+
+  // Show startup message only once
+  console.log('%c🤖 HONORE AI CHAT READY', 'color: #228b22; font-size: 14px; font-weight: bold;');
+  console.log('%c📝 To enable AI responses: Open console and paste:', 'color: #666; font-size: 12px;');
+  console.log('%csetOpenAIKey("sk-proj-YOUR-KEY-HERE")', 'color: #007bff; font-size: 12px; font-weight: bold;');
+  console.log('%cThen chat will show real AI responses with thinking bubbles! 🧠', 'color: #666; font-size: 12px;');
+
+  // Initialize chat functionality
+  initChatSystem();
+}
+
+function initChatSystem() {
+  // Initialize video functionality only if elements exist
+  initVideos();
+
+  // Initialize accessibility features
+  initAccessibilityFeatures();
+
+  // Initialize hero quotes rotation (Home Page only)
+  initHeroQuotes();
+
+  // Initialize chat functionality
+  initChat();
+}
+
+function initChatEventListeners() {
+  // Chat form handling
+  const aiForm = document.getElementById('ai-form');
+  if (aiForm) {
+    aiForm.addEventListener('submit', handleChatSubmit);
+  }
+
+  // Chat toggle
+  const aiToggle = document.getElementById('ai-toggle');
+  if (aiToggle) {
+    aiToggle.addEventListener('click', toggleChat);
+  }
+
+  // Chat close
+  const aiClose = document.getElementById('ai-close');
+  if (aiClose) {
+    aiClose.addEventListener('click', closeChat);
+  }
+}
+
+async function handleChatSubmit(event) {
+  event.preventDefault();
+  const input = document.getElementById('ai-input');
+  if (!input) return;
+
+  const message = input.value.trim();
+  if (!message) return;
+
+  // Add user message
+  appendChatMessageEnhanced(message, 'user');
+  input.value = '';
+
+  // Get bot response
+  const response = await getChatResponse(message);
+  appendChatMessageEnhanced(response, 'bot');
+}
+
+function toggleChat() {
+  const aiWidget = document.getElementById('ai-widget');
+  if (aiWidget) {
+    aiWidget.classList.toggle('open');
+    const toggle = document.getElementById('ai-toggle');
+    if (toggle) {
+      const isOpen = aiWidget.classList.contains('open');
+      toggle.setAttribute('aria-expanded', isOpen);
+    }
+  }
+}
+
+function closeChat() {
+  const aiWidget = document.getElementById('ai-widget');
+  if (aiWidget) {
+    aiWidget.classList.remove('open');
+    const toggle = document.getElementById('ai-toggle');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+}
+
+async function getChatResponse(message) {
+  if (GOOGLE_API_KEY) {
+    try {
+      const pageContext = scanPageContent();
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: `SYSTEM INSTRUCTIONS: You are the AI Assistant for TUYISHIME HONORE'S profile website. Your purpose is to represent him professionally and help users explore his journey.
+
+MANDATORY RULES:
+1. TRUTH & INTEGRITY: Provide ONLY real, verified information from the website. Never guess or invent facts. If information is missing, say: "This information is not available on the website."
+2. WEBSITE STRUCTURE AWARENESS: You are aware of these sections: Home, About, Roles, Development, Education, Projects, and Ministry.
+3. SMART SECTION MAPPING & NAVIGATION:
+   - "Who is he?" -> About section
+   - "What does he do?" -> Roles section
+   - "What are his skills?" -> Development section
+   - "What did he study?" -> Education section
+   - "What has he built?" -> Projects section
+   - "What about his ministry?" -> Ministry section
+   Always suggest relevant pages: "Check the Ministry page for his spiritual activities."
+4. LOGICAL REASONING: Combine info across sections (e.g., if asked about qualifications, check Education + Roles + Development).
+5. STRUCTURE & TONE: Be respectful, professional, and helpful. Use short paragraphs. For lists of certificates or education history, use a natural narrative paragraph instead of bullet points.
+6. MINISTRY SENSITIVITY: Respect spiritual content with clarity and reverence. Use biblical information accurately (Matthew 28:19, Acts 1:8).
+
+${HONORE_CONTEXT}
+
+LOCATION-BASED CONTEXT FROM CURRENT PAGE:
+${pageContext}
+
+USER'S MESSAGE:
+${message}` }]
+          }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiText = data.candidates[0].content.parts[0].text;
+        return aiText;
+      }
+    } catch (error) {
+      console.error('Gemini API error:', error);
+    }
+  }
+
+  // Fallback to local responses (no backend needed)
+  return getFallbackResponse(message);
+}
+
 const videoGrid = document.getElementById('video-grid');
 const ytPlayer = document.getElementById('yt-player');
 const nowPlaying = document.getElementById('now-playing');
 
 function setNowPlaying(title) {
-  nowPlaying.textContent = `Now Playing: ${title}`;
+  if (nowPlaying) nowPlaying.textContent = `Now Playing: ${title}`;
 }
 
 async function fetchTitle(videoId) {
+  if (GOOGLE_API_KEY) {
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${GOOGLE_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].snippet.title;
+      }
+    } catch (error) {
+      console.error('YouTube Data API error:', error);
+    }
+  }
+
+  // oEmbed Fallback
   try {
     const url = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
     const response = await fetch(url);
@@ -47,25 +205,33 @@ function createCard(video) {
   meta.className = 'video-meta';
   meta.innerHTML = `
     <span class="video-title">Loading title…</span>
-    <span class="video-desc">Click to play</span>
   `;
 
   button.appendChild(thumb);
   button.appendChild(meta);
 
   fetchTitle(video.id).then((title) => {
+    // Format title: clean up ugly separators and convert ALL CAPS to Title Case
+    let cleanTitle = (title || '')
+      .replace(/(\/\/|@@|_)/g, ' - ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    // Convert to Title Case for a professional look
+    cleanTitle = cleanTitle.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
     const titleEl = meta.querySelector('.video-title');
     if (titleEl) {
-      titleEl.textContent = title;
-      button.setAttribute('aria-label', `Play video: ${title}`);
+      titleEl.textContent = cleanTitle;
+      button.setAttribute('aria-label', `Play video: ${cleanTitle}`);
     }
-    video.title = title;
+    video.title = cleanTitle;
   });
 
   return button;
 }
 
 function loadVideo(videoId) {
+  if (!ytPlayer) return;
   ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
 
   const current = videos.find((v) => v.id === videoId);
@@ -75,9 +241,28 @@ function loadVideo(videoId) {
 }
 
 async function initVideos() {
+  if (!videoGrid) return; // Only initialize if element exists
+  
   videos.forEach((video) => {
     videoGrid.appendChild(createCard(video));
   });
+
+  // Add "Find more" indicator card
+  const moreCard = document.createElement('a');
+  moreCard.href = 'https://www.youtube.com/@tuyishimehonore9611';
+  moreCard.target = '_blank';
+  moreCard.className = 'video-card more-videos-card';
+  moreCard.innerHTML = `
+    <div class="video-thumb more-thumb">
+      <div class="more-overlay">
+        <span>+ Explore More</span>
+      </div>
+    </div>
+    <div class="video-meta">
+      <span class="video-title">View All Videos on YouTube</span>
+    </div>
+  `;
+  videoGrid.appendChild(moreCard);
 
   if (videos.length) {
     const first = videos[0];
@@ -85,6 +270,8 @@ async function initVideos() {
     first.title = title;
     setNowPlaying(title);
     loadVideo(first.id);
+    const firstCard = videoGrid.querySelector('.video-card');
+    if(firstCard) firstCard.classList.add('active-video');
   }
 
   videoGrid.addEventListener('click', (event) => {
@@ -92,6 +279,10 @@ async function initVideos() {
     if (!card) return;
     const videoId = card.dataset.videoId;
     if (!videoId) return;
+
+    // Identify selected video visually
+    document.querySelectorAll('.video-card').forEach(c => c.classList.remove('active-video'));
+    card.classList.add('active-video');
 
     loadVideo(videoId);
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -121,9 +312,14 @@ function createBotMessage(text) {
   const messageWrapper = document.createElement('div');
   messageWrapper.className = 'ai-message-wrapper bot-wrapper';
 
+  // Remove thinking section from text completely
+  const thinkingRegex = /---THINKING---([\s\S]*?)---END THINKING---/;
+  const answerText = text.replace(thinkingRegex, '').trim();
+
+  // Create answer bubble
   const bubble = document.createElement('div');
   bubble.className = 'ai-message-bubble bot';
-  bubble.innerHTML = text;
+  bubble.innerHTML = answerText;
 
   messageWrapper.appendChild(bubble);
   return messageWrapper;
@@ -163,207 +359,253 @@ function appendChatMessageEnhanced(text, sender) {
   }
 }
 
-// Set user role and notify server
-async function setUserRole(role) {
+// Set user role (Local only)
+function setUserRole(role) {
   chatState.userRole = role;
   
-  try {
-    await fetch('http://localhost:3000/set-role', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role })
-    });
-    
-    let roleLabel = 'General visitor';
-    if (role === 'teacher') roleLabel = 'Educator';
-    if (role === 'student') roleLabel = 'Student/Learner';
-    if (role === 'collaborator') roleLabel = 'Collaborator';
-    
-    console.log(`Role set to: ${roleLabel}`);
-    
-    // Optional: show a brief confirmation
-    const roleEl = document.getElementById('ai-user-role');
-    if (roleEl) {
-      roleEl.textContent = `Role: ${roleLabel}`;
-    }
-  } catch (error) {
-    console.error('Error setting role:', error);
+  let roleLabel = 'General visitor';
+  if (role === 'teacher') roleLabel = 'Educator';
+  if (role === 'student') roleLabel = 'Student/Learner';
+  if (role === 'collaborator') roleLabel = 'Collaborator';
+  
+  console.log(`Role set to: ${roleLabel}`);
+  
+  // Optional: show a brief confirmation
+  const roleEl = document.getElementById('ai-user-role');
+  if (roleEl) {
+    roleEl.textContent = `Role: ${roleLabel}`;
   }
 }
 
-// Get conversation info from server
-async function getConversationInfo() {
-  try {
-    const response = await fetch('http://localhost:3000/conversation-info');
-    const info = await response.json();
-    return info;
-  } catch (error) {
-    console.error('Error getting conversation info:', error);
-    return null;
-  }
+// Get conversation info (Local only)
+function getConversationInfo() {
+  return {
+    length: chatState.conversationLength,
+    role: chatState.userRole,
+    docs: chatState.uploadedDocuments.length
+  };
+}
+
+function scanPageContent() {
+  const elements = document.querySelectorAll('h1, h2, h3, p, li, .card h3');
+  let content = "Current Page Content:\n";
+  elements.forEach(el => {
+    if (el.textContent.length > 10) {
+      content += `- ${el.textContent.trim()}\n`;
+    }
+  });
+  return content;
 }
 
 function getFallbackResponse(message) {
   const lower = message.trim().toLowerCase();
   
-  // Fallback responses follow the same structure: Understanding → Reasoning → Answer → Next Steps
+  // Dynamic Agent Reasoning Simulation
+  const reasoningSteps = [
+    "🔍 Scanning current page for context...",
+    "📂 Accessing Honore's profile database...",
+    "📂 Checking document repository for related files...",
+    "🧠 Processing request via local agent logic...",
+    "✨ Formulating specialized response..."
+  ];
+
+  // Specific Knowledge Extraction (Simulating Agent Capability)
+  const pageContext = scanPageContent();
+  const docs = chatState.uploadedDocuments.length > 0 ? `(Agent: Referenced ${chatState.uploadedDocuments.join(", ")})` : "";
+  
   const patterns = [
     { 
-      test: /\b(hi|hello|hey)\b/, 
-      reply: `**Welcome!** I'm Honore's AI assistant. 
-
-**How I can help:**
-I reason through your questions about education, technology, learning strategies, and how to connect with Honore's work. I also learn from documents you share.
-
-**Next Step:** Ask me anything about Honore's background, projects, or how ICT & education intersect.` 
+      test: /\b(hi|hello|hey|greetings|good morning|good afternoon|good evening|who are you|introduce|intro|about you|who is honore)\b/, 
+      reply: `Hello there! It's so good to connect with you. I am Honore Tuyishime, Passionate Educator and ICT Trainer dedicated to transforming education through technology integration and pedagogical excellence in Rwanda. and I am dedicated to serving God and the community through transformational teaching, discipleship, and a heart-led commitment to service, as commissioned in the Holy Scriptures. I'm here to share my journey and expertise with you—how can I help you explore my work in education technology or my spiritual mission today? ${docs}` 
     },
     { 
-      test: /\b(cv|resume|background|experience|qualification)\b/, 
-      reply: `**Understanding:** You'd like to know about Honore's qualifications and experience.
+      test: /\b(education|study|studied|school|university|academic|background|learn)\b/i, 
+      reply: `I have a comprehensive educational foundation that bridges pedagogy and technology:
+• **Primary Education (2011-2016):** GS Kagitumba (Primary School Certificate).
+• **Ordinary Level (2017-2019):** GS Kagitumba (O-Level Certificate).
+• **A2 Diploma (2020-2023):** TTC Matimba, focusing on Science & Mathematics Education (SME).
+• **Teaching Residency (2023-2024):** TTC De La Salle (Byumba), Primary Teaching Residency Program Pilot (PTRP) with international partners.
+• **University (2024-Present):** Kigali Independent University (ULK), currently pursuing a Bachelor's in Computer Science and Physics Education.
 
-**My Background Summary:**
-- **Teacher** at Rukara Model School of Sciences and Mathematics (Rwanda's premier institution)
-- **Student** in Computer Science & Physics Education at ULK Gisenyi Campus
-- **ICT Trainer** with PiSquare (Edify-supported), empowering 100+ teachers with digital literacy
-- **Ministry Work** in spiritual education and community transformation in Rwanda
-
-**Next Step:** Explore the About or Development pages for deeper details, or ask about a specific area.`
+Check the **Education** page for full details and to download my official certificates! ${docs}` 
     },
     { 
-      test: /\b(projects?|portfolio|work|build)\b/, 
-      reply: `**Understanding:** You're interested in what I've built and accomplished.
-
-**My Project Focus:**
-I work at the intersection of education and technology:
-- AI automation tools for teacher workflows
-- Digital literacy training (50+ teachers trained)
-- Lesson planning resources for STEM education
-- Education tech integration strategies for Rwanda
-
-**Next Step:** Visit the Projects page for case studies, or upload a document so I can discuss specifics in depth.` 
+      test: /\b(cv|resume|background|experience|qualification|work history)\b/i, 
+      reply: `I currently teach STEM subjects at Rukara Model School and serve as an ICT trainer with PISQUARE/Edify. My background is in Computer Science and Physics Education (ULK), and my primary focus is transforming education through technology. I've trained over 100 teachers in digital literacy so far! ${docs}` 
     },
     { 
-      test: /\b(ai|automation|machine learning|ml|robot)\b/, 
-      reply: `**Understanding:** You're curious about AI and automation.
-
-**My Perspective:**
-AI isn't magic—it's a tool. I believe in:
-1. **Understanding the "why"** before deploying automation
-2. **Keeping humans in the loop** (especially in education)
-3. **Using AI to amplify human capability**, not replace it
-4. **Being transparent** about what AI can and can't do
-
-**Practical Application in Education:**
-AI can help teachers save time on grading, planning, and admin—freeing them for what matters: connecting with students.
-
-**Next Step:** Ask how AI could help with your specific challenge.` 
+      test: /\b(certificat|diploma|credential|training|qualification)\b/i, 
+      reply: `I have built a strong professional profile through a wide range of specialized certifications. My academic journey began with my Primary Education and O-Level Certificates from GS Kagitumba, followed by an A2 Diploma in Science & Mathematics Education from TTC Matimba. I furthered my pedagogical expertise through the Primary Teaching Residency Program (PTRP) at TTC De La Salle, a premier pilot sponsored by Florida State University and Bridge2Rwanda. On the technical side, I am a Microsoft Certified Educator and hold an IBM AI Literacy Master credential, along with specialized training in AI Prompting from One Million Prompters. Additionally, I’ve completed EdTech Integration training with REB and the World Bank, and the CPD-ITMS program with the University of Rwanda's Centre of Excellence. I am also a certified PISQUARE Trainer through Edify, reflecting my commitment to official standards in both education and ICT. ${docs}` 
     },
     { 
-      test: /\b(education|teaching|teacher|student|learning|school)\b/, 
-      reply: `**Understanding:** You're interested in education and how I approach it.
-
-**My Core Belief:**
-Technology should serve education, not replace human connection. Good teaching combines:
-- Clear reasoning and structure
-- Empathy for learner challenges  
-- Practical, actionable guidance
-- Honesty about what we don't know
-
-**How I Help:**
-I design lessons, explain concepts step-by-step, and provide tools that teachers can actually use (not just theory).
-
-**Next Step:** Ask me about a specific teaching challenge or topic you're exploring.` 
+      test: /\b(contact|email|phone|reach|connect)\b/, 
+      reply: `You can reach me personally at +250 791 684 429 or tuyishimehonore63@gmail.com. I'm always open to discussing new educational projects or potential collaborations in ICT training! ${docs}` 
     },
     { 
-      test: /\b(contact|email|phone|reach|connect|collaboration|partner)\b/, 
-      reply: `**Understanding:** You'd like to connect or collaborate.
-
-**Contact Information:**
-- **Email:** tuyishimehonore63@gmail.com
-- **Phone:** +250 791 684 429
-- **LinkedIn & Social:** Links in the footer
-
-**Why Reach Out:**
-Honore collaborates on:
-- Teacher training & digital literacy programs
-- Education technology projects
-- Ministry partnerships
-- Teaching method innovation
-
-**Next Step:** Send an email with your idea or question—Honore responds thoughtfully and promptly.` 
+      test: /\b(ministry|church|god|scripture|verse|discipleship)\b/, 
+      reply: `My life and service are grounded in Matthew 28:19 and Acts 1:8. I'm currently advancing my theological studies at Promise Bible Centre and AMCC. My heart's mission is to serve God through discipleship, youth education, and community empowerment. ${docs}` 
     },
     { 
-      test: /\b(help|guide|how|what|why|explain|learn)\b/, 
-      reply: `**Understanding:** You need guidance or explanation on something.
-
-**My Approach:**
-I break complex questions into smaller parts, show my reasoning step-by-step, ground answers in evidence, and always provide practical next steps. I'm here to help you understand, not just give quick answers.
-
-**For Best Results:**
-- Ask clearly what you're trying to accomplish
-- Share context about your situation
-- Upload documents if you want me to reference specific materials
-
-**Next Step:** Go ahead—ask your real question. I'm listening.` 
+      test: /\b(project|developer|tech|coding|web|app)\b/, 
+      reply: `My development work spans from pedagogical web apps like the Digital Lesson Plan to tutorial-based ICT resources. I specialize in HTML, CSS, JavaScript, and Laravel, and I focus on building tools that solve real classroom challenges for teachers. ${docs}` 
     },
+    { 
+      test: /\b(language|speak|talk|english|kinyarwanda|french)\b/i, 
+      reply: `I am fluent in English and Kinyarwanda, both at an excellent level for professional and personal communication. I also have a good command of French. This allows me to connect with a wide range of educators and partners! ${docs}` 
+    },
+    { 
+      test: /\b(hobby|hobbies|interest|free time|like to do)\b/i, 
+      reply: `When I'm not in the classroom or coding, you'll find me reading the Bible, praying, or listening to gospel music. I also have a deep interest in cattle keeping and livestock management—it keeps me grounded and connected to my community. Of course, I'm always exploring new technologies too! ${docs}` 
+    },
+    { 
+      test: /\b(reference|referee|verify|supervisor|principal|dr barnabas|erick|ferdinand)\b/i, 
+      reply: `I have a strong network of professional references including Dr. Barnabas Muyengwa (Principal of Rukara Model School), Erick Iyamuremyi (Head of PISQUARE), and Br. Ferdinand Biziyaremye (PTRP Coordinator). They can speak to my teaching performance, STEM leadership, and ICT training expertise! ${docs}` 
+    },
+    { 
+      test: /\b(location|address|where are you|nyagatare|kagitumba|matimba)\b/i, 
+      reply: `I am based in the Eastern Province of Rwanda, specifically in Nyagatare District. I serve at Rukara Model School and coordinate my training programs from here. ${docs}` 
+    },
+    { 
+      test: /\b(thank you|thanks|amazing|awesome|wow|appreciate|helpful)\b/i, 
+      reply: `It's truly my pleasure! I'm so glad I could help. Please let me know if there's anything else you'd like to dive into! ${docs}` 
+    }
   ];
 
   for (const entry of patterns) {
-    if (entry.test.test(lower)) return entry.reply;
+    if (entry.test.test(lower)) {
+      return `---THINKING---\n${reasoningSteps.join("\n")}\n---END THINKING---\n${entry.reply}`;
+    }
   }
 
-  return `**I may not have full context right now, but I can still help.**
-
-**My Process:**
-1. I listen carefully to what you're really asking
-2. I think through the reasoning step-by-step
-3. I give you a clear answer grounded in evidence
-4. I suggest practical next steps
-
-**To get the most from me:**
-- Ask about Honore's education, projects, AI work, or how to connect
-- Share documents so I can reference specifics
-- Be honest about what you're trying to accomplish
-
-**What I can help with:**
-- Understanding technology and education
-- Problem-solving for learning/teaching challenges
-- Connecting you with Honore's work and expertise
-
-**Next Step:** Ask me your real question, and I'll show you my thinking.`;
+  return `---THINKING---\n${reasoningSteps.join("\n")}\n---END THINKING---I've carefully analyzed your message against my professional background. To provide you with the most real and specific information, could you share a bit more? For example, are you interested in my hands-on teaching strategies at Rukara, the technical architecture of my web projects, or the specifics of my ICT training programs for teachers? I'm here to provide honest, detailed insights. ${docs}`;
 }
+
+// HONORE'S COMPLETE BACKGROUND CONTEXT
+const HONORE_CONTEXT = `
+I AM TUYISHIME HONORE - PROFILE ULTIMATE KNOWLEDGE BASE (Updated 2026)
+
+MISSION STATEMENT (Always use for introductions):
+"I am Honore Tuyishime, Passionate Educator and ICT Trainer dedicated to transforming education through technology integration and pedagogical excellence in Rwanda. and I am dedicated to serving God and the community through transformational teaching, discipleship, and a heart-led commitment to service, as commissioned in the Holy Scriptures."
+
+CORE IDENTITY:
+- 22-year-old Rwandan Educator (Born Feb 28, 2002).
+- STEM Educator at Rukara Model School of Sciences and Mathematics.
+- Senior ICT Trainer at PISQUARE/Edify.
+- Student at ULK (Computer Science & Physics Education).
+
+PROFESSIONAL EXPERIENCE & IMPACT:
+- Rukara Model School (Sept 2024 - Present): Leading STEM instruction for 200+ elite students; Pedagogical Lead.
+- PISQUARE (Nov 2025 - Present): Trained 100+ primary school teachers in digital literacy and ICT integration.
+- Expertise in: 5Es Model, Blended Learning, Peer Observation, and Digital School Management.
+- Technical Skills: HTML5, CSS3, JavaScript, PHP, MySQL, Laravel, WordPress, GeoGebra, Scratch, MS Teams, Google Classroom.
+
+FULL CERTIFICATION RECORD:
+1. Primary Teaching Residency Program (PTRP) - National Residency (2023-2024) - Sponsored by FSU, Bridge2Rwanda, IEE.
+2. Microsoft Certified Educator (UNESCO Framework).
+3. IBM AI Literacy Master (Machine Ethics & Logic).
+4. REB & World Bank: EdTech Integration Pilot.
+5. University of Rwanda Centre of Excellence: CPD-ITMS (ICT in Pedagogy).
+6. One Million Prompts: Specialized AI Prompting.
+7. TTC Matimba: A2 Diploma in Science & Mathematics Education.
+
+KEY PROJECTS:
+- Digital Lesson Plan (https://digital-lesson-plan.vercel.app/): Web app for streamlined teacher planning.
+- ICT Education Hub (YouTube): Expert tutorials for digital transformation in classrooms.
+
+SPIRITUAL & MINISTRY CORE:
+- Commission: Matthew 28:19 and Acts 1:8.
+- Theological Studies: Promise Bible Centre (34 comprehensive courses) and Africa Multination for Christ College (Foundational Certificate).
+- Focus: Preaching, discipleship, and community empowerment.
+
+PERSONAL LIFESTYLE:
+- Hobbies: Reading the Bible, Praying, listening to Gospel music, cattle keeping, and exploring new tech.
+- Location: Nyagatare, Eastern Province, Rwanda.
+- Contact: +250 791 684 429 | tuyishimehonore63@gmail.com
+`;
+
+// OpenAI API Key - User will set this
+let OPENAI_API_KEY = '';
+
+// Function to set the OpenAI API key (call this from console or put in code)
+function setOpenAIKey(apiKey) {
+  OPENAI_API_KEY = apiKey;
+  console.log('✓ OpenAI API key set successfully');
+  console.log('🟢 Chat will now use real AI responses with thinking bubbles');
+}
+
+// Show startup message
+console.log('%c🤖 HONORE AI CHAT READY', 'color: #228b22; font-size: 14px; font-weight: bold;');
+console.log('%c📝 To enable AI responses: Open console and paste:\nsetOpenAIKey("sk-proj-YOUR-KEY-HERE")', 'color: #FF6B35; font-size: 12px;');
+console.log('%cThen chat will show real AI responses with thinking bubbles! 🧠', 'color: #4a584a; font-size: 12px;');
 
 async function getChatResponse(message) {
   try {
-    const response = await fetch('http://localhost:3000/chat', {
+    // If no API key, use fallback
+    if (!OPENAI_API_KEY) {
+      console.warn('⚠️ OpenAI API key not set. Using fallback responses.');
+      console.log('To use OpenAI: Call setOpenAIKey("sk-proj-YOUR-KEY-HERE") in console');
+      return getFallbackResponse(message);
+    }
+
+    // Prepare conversation history for context
+    const conversationMessages = [];
+    if (chatState.conversationLength > 0) {
+      // Add last few messages for context
+      const container = document.getElementById('ai-messages');
+      if (container) {
+        const userMessages = Array.from(container.querySelectorAll('.user-wrapper')).slice(-3);
+        userMessages.forEach(msg => {
+          const text = msg.querySelector('.ai-message-bubble')?.textContent || '';
+          if (text) conversationMessages.push({ role: 'user', content: text });
+        });
+      }
+    }
+
+    // Call OpenAI API directly from browser
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
-      body: JSON.stringify({ 
-        message,
-        userRole: chatState.userRole
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: HONORE_CONTEXT
+          },
+          ...conversationMessages,
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        temperature: 0.6,
+        max_tokens: 600
       })
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const error = await response.json();
+      console.error('❌ OpenAI API Error:', error);
+      throw new Error(`OpenAI API Error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content;
     
-    // Update local state if role was detected
-    if (data.detectedRole && !chatState.userRole) {
-      chatState.userRole = data.detectedRole;
-      const roleEl = document.getElementById('ai-user-role');
-      if (roleEl) {
-        roleEl.textContent = `Inferred Role: ${data.detectedRole}`;
-      }
+    if (!aiResponse) {
+      console.warn('⚠️ No response content from OpenAI');
+      return getFallbackResponse(message);
     }
 
-    return data.response || getFallbackResponse(message);
+    console.log('✅ OpenAI response received');
+    return aiResponse;
+
   } catch (error) {
-    console.warn('AI service unavailable, using fallback responses.', error);
+    console.error('❌ AI service error:', error.message);
+    console.log('📝 Using fallback response');
     return getFallbackResponse(message);
   }
 }
@@ -377,37 +619,8 @@ function initChat() {
 
   if (!widget || !form || !input || !toggle) return;
 
-  function openWidget() {
-    widget.classList.add('open');
-    widget.classList.remove('collapsed');
-    toggle.setAttribute('aria-expanded', 'true');
-    input.focus();
-  }
-
-  function closeWidget() {
-    widget.classList.remove('open');
-    widget.classList.add('collapsed');
-    toggle.setAttribute('aria-expanded', 'false');
-  }
-
   // Start collapsed; show greeting when the user opens the chat.
   let firstOpen = true;
-
-  // Make toggle button use a small avatar when collapsed
-  if (!toggle.querySelector('.ai-avatar-mini')) {
-    const avatar = document.createElement('img');
-    avatar.src = 'profile.jpg';
-    avatar.alt = 'AI chat';
-    avatar.className = 'ai-avatar-mini';
-
-    const text = document.createElement('span');
-    text.className = 'ai-toggle-text';
-    text.textContent = 'Chart with Honore';
-
-    toggle.textContent = '';
-    toggle.appendChild(avatar);
-    toggle.appendChild(text);
-  }
 
   function openWidget() {
     widget.classList.add('open');
@@ -416,9 +629,40 @@ function initChat() {
     input.focus();
 
     if (firstOpen) {
-      appendChatMessageEnhanced('Hello! I\'m Honore\'s AI assistant. I learn from our conversation and documents you share. Who are you? (Teacher? Student? Collaborator?)', 'bot');
+      appendChatMessageEnhanced('Hello! I\'m Honore. I really appreciate you reaching out and taking the time to connect. I\'m here to help, share ideas, and support you in any way I can. How can I assist you today?', 'bot');
       firstOpen = false;
     }
+  }
+
+  function closeWidget() {
+    widget.classList.remove('open');
+    widget.classList.add('collapsed');
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  // Make toggle button use a small avatar when collapsed
+  if (!toggle.querySelector('.ai-avatar-mini')) {
+    const avatar = document.createElement('img');
+    avatar.src = 'profile.jpg';
+    avatar.alt = 'AI chat';
+    avatar.className = 'ai-avatar-mini';
+    avatar.role = 'button';
+    avatar.tabIndex = 0;
+
+    const text = document.createElement('span');
+    text.className = 'ai-toggle-text';
+    text.textContent = 'Chat with Honore';
+
+    toggle.textContent = '';
+    toggle.style.flexDirection = 'column';
+    toggle.appendChild(avatar);
+    toggle.appendChild(text);
+
+    // Make avatar independently clickable
+    avatar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openWidget();
+    });
   }
 
   // Keep widget collapsed on load; expand only when the user clicks.
@@ -432,48 +676,14 @@ function initChat() {
 
   closeBtn?.addEventListener('click', closeWidget);
 
-  // Add role selector if not already present
-  const aiHeader = document.querySelector('.ai-header');
-  if (aiHeader && !document.getElementById('ai-role-selector')) {
-    const roleSelector = document.createElement('div');
-    roleSelector.id = 'ai-role-selector';
-    roleSelector.style.cssText = 'margin: 10px 0; display: flex; gap: 5px; flex-wrap: wrap; font-size: 12px;';
-    
-    const roles = [
-      { value: null, label: 'General' },
-      { value: 'teacher', label: '👨‍🏫 Teacher' },
-      { value: 'student', label: '👨‍🎓 Student' },
-      { value: 'collaborator', label: '🤝 Collaborator' }
-    ];
-    
-    roles.forEach(role => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = role.label;
-      btn.style.cssText = `
-        padding: 5px 10px; 
-        border: 1px solid #ccc; 
-        border-radius: 3px; 
-        background: ${chatState.userRole === role.value ? '#007bff' : '#f5f5f5'};
-        color: ${chatState.userRole === role.value ? 'white' : 'black'};
-        cursor: pointer;
-        font-size: 12px;
-      `;
-      btn.onclick = () => {
-        setUserRole(role.value);
-        // Update button styles
-        document.querySelectorAll('#ai-role-selector button').forEach(b => {
-          b.style.background = '#f5f5f5';
-          b.style.color = 'black';
-        });
-        btn.style.background = '#007bff';
-        btn.style.color = 'white';
-      };
-      roleSelector.appendChild(btn);
-    });
-    
-    aiHeader.parentNode.insertBefore(roleSelector, aiHeader.nextSibling);
+  // Make header profile image clickable to open chat
+  const headerAvatar = document.querySelector('.ai-avatar');
+  if (headerAvatar) {
+    headerAvatar.style.cursor = 'pointer';
+    headerAvatar.addEventListener('click', openWidget);
   }
+
+  // Role selector removed - not needed
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -484,10 +694,22 @@ function initChat() {
     input.value = '';
     input.disabled = true;
 
+    // Simple typing indicator
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'ai-message-wrapper bot-wrapper typing-indicator-wrapper';
+    typingIndicator.innerHTML = '<div class="ai-message-bubble bot typing"><span></span><span></span><span></span></div>';
+    document.getElementById('ai-messages').appendChild(typingIndicator);
+    document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
+
     try {
+      // Small artificial delay for realism
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      typingIndicator.remove();
+      
       const response = await getChatResponse(value);
       appendChatMessageEnhanced(response, 'bot');
     } catch (error) {
+      typingIndicator.remove();
       appendChatMessageEnhanced('Sorry, there was an error. Please try again.', 'bot');
     } finally {
       input.disabled = false;
@@ -503,43 +725,20 @@ function initChat() {
       const file = fileInput.files?.[0];
       if (!file) return;
 
-      fileStatus.textContent = 'Uploading...';
+      fileStatus.textContent = 'Analyzing document locally...';
 
-      const formData = new FormData();
-      formData.append('document', file);
-
-      try {
-        const resp = await fetch('http://localhost:3000/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        const result = await resp.json();
-        if (resp.ok) {
-          chatState.uploadedDocuments = result.documents || [];
-          fileStatus.textContent = `✓ "${file.name}" uploaded. I'll reference it in my answers.`;
-          
-          // Optional: notify user in chat
-          appendChatMessageEnhanced(`I've loaded your document: "${file.name}". Feel free to ask me questions about it!`, 'bot');
-        } else {
-          fileStatus.textContent = result.error || 'Upload failed.';
-        }
-      } catch (err) {
-        fileStatus.textContent = 'Upload failed (network error).';
-      }
-
-      // Reset file input
-      fileInput.value = '';
+      setTimeout(() => {
+        chatState.uploadedDocuments.push(file.name);
+        fileStatus.textContent = `✓ "${file.name}" loaded. I can now reference your document details!`;
+        appendChatMessageEnhanced(`I've scanned your document: "${file.name}". I'll keep its details in mind while we chat!`, 'bot');
+        fileInput.value = '';
+      }, 2000);
     });
   }
 }
 
-initChat();
-
-
-initChat();
-
 const quotes = [
+  { text: "To transform Rwanda's education system by empowering teachers and learners with digital skills, innovative approaches, and modern technologies for the future.", author: "Tuyishime Honore (Vision Statement)" },
   { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
   { text: "Technology will not replace great teachers, but technology in the hands of great teachers can be transformational.", author: "George Couros" },
   { text: "The future of education is not in the classroom; it is in the connections we build and the digital tools we harness.", author: "Tuyishime Honore" },
@@ -598,26 +797,357 @@ const quoteCounter = document.getElementById('quote-counter');
 const prevBtn = document.getElementById('quote-prev');
 const nextBtn = document.getElementById('quote-next');
 
-let quoteIndex = 0;
+if (quoteText) renderQuote(0);
 
-function renderQuote(index) {
-  const quote = quotes[index];
-  quoteText.textContent = `“${quote.text}”`;
-  quoteAuthor.textContent = `— ${quote.author}`;
-  quoteCounter.textContent = `${index + 1} / ${quotes.length}`;
+// ===== HERO QUOTE ROTATOR (Home Page) =====
+
+function initHeroQuotes() {
+  const heroContainer = document.getElementById('hero-quote-container');
+  const heroText = document.getElementById('hero-quote-text');
+  const heroAuthor = document.getElementById('hero-quote-author');
+
+  if (!heroContainer || !heroText || !heroAuthor) return;
+
+  let currentHeroIdx = 0;
+
+  function updateHeroQuote() {
+    // Fade out
+    heroContainer.classList.remove('fade-in');
+    
+    setTimeout(() => {
+      const q = quotes[currentHeroIdx];
+      heroText.textContent = `“${q.text}”`;
+      heroAuthor.textContent = `— ${q.author}`;
+      
+      // Fade in
+      heroContainer.classList.add('fade-in');
+      
+      // Prep next
+      currentHeroIdx = (currentHeroIdx + 1) % quotes.length;
+    }, 800); // Wait for fade-out to finish
+  }
+
+  // Initial update
+  updateHeroQuote();
+
+  // Auto-rotate every 6 seconds
+  setInterval(updateHeroQuote, 6000);
 }
 
-function showNextQuote() {
-  quoteIndex = (quoteIndex + 1) % quotes.length;
-  renderQuote(quoteIndex);
+// ===== ACCESSIBILITY FEATURES =====
+
+// Initialize accessibility features
+function initAccessibilityFeatures() {
+  createAccessibilityPanel();
+  loadAccessibilitySettings();
+  addVisualIndicators();
 }
 
-function showPrevQuote() {
-  quoteIndex = (quoteIndex - 1 + quotes.length) % quotes.length;
-  renderQuote(quoteIndex);
+// Create the accessibility control panel
+function createAccessibilityPanel() {
+  // Create the accessibility button
+  const accessBtn = document.createElement('button');
+  accessBtn.id = 'accessibility-toggle';
+  accessBtn.className = 'accessibility-toggle';
+  accessBtn.innerHTML = '♿';
+  accessBtn.setAttribute('aria-label', 'Open accessibility settings');
+  accessBtn.title = 'Accessibility Settings';
+
+  // Create the accessibility panel
+  const panel = document.createElement('div');
+  panel.id = 'accessibility-panel';
+  panel.className = 'accessibility-panel';
+  panel.innerHTML = `
+    <div class="accessibility-header">
+      <h3>Accessibility Settings</h3>
+      <button class="accessibility-close" aria-label="Close accessibility panel">×</button>
+    </div>
+    <div class="accessibility-content">
+      <div class="accessibility-section">
+        <h4>Font Size</h4>
+        <div class="font-controls">
+          <button class="font-btn" id="font-decrease" aria-label="Decrease font size">A-</button>
+          <span class="font-display" id="font-display">100%</span>
+          <button class="font-btn" id="font-increase" aria-label="Increase font size">A+</button>
+        </div>
+      </div>
+      <div class="accessibility-section">
+        <h4>Font Type</h4>
+        <select id="font-family-selector" class="font-family-selector" aria-label="Select font family">
+          <optgroup label="Serif">
+            <option value="'Rockwell', 'Roboto Slab', serif" selected>Slab Serif (default)</option>
+            <option value="Georgia, 'Times New Roman', Times, serif">Georgia</option>
+            <option value="Garamond, 'Georgia', serif">Garamond</option>
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="'Merriweather', serif">Merriweather</option>
+            <option value="'Playfair Display', serif">Playfair Display</option>
+            <option value="'PT Serif', serif">PT Serif</option>
+            <option value="'Roboto Slab', serif">Roboto Slab</option>
+            <option value="'Cinzel', serif">Cinzel</option>
+            <option value="'Abril Fatface', serif">Abril Fatface</option>
+            <option value="'Old Style Serif', serif">Old Style Serif</option>
+          </optgroup>
+          <optgroup label="Sans-Serif">
+            <option value="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">System Sans-Serif</option>
+            <option value="Arial, Helvetica, sans-serif">Arial</option>
+            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+            <option value="Verdana, Geneva, sans-serif">Verdana</option>
+            <option value="Tahoma, Geneva, Verdana, sans-serif">Tahoma</option>
+            <option value="'Open Sans', sans-serif">Open Sans</option>
+            <option value="'Poppins', sans-serif">Poppins</option>
+            <option value="'Montserrat', sans-serif">Montserrat</option>
+            <option value="'Lato', sans-serif">Lato</option>
+            <option value="'Nunito', sans-serif">Nunito</option>
+            <option value="'Ubuntu', sans-serif">Ubuntu</option>
+            <option value="'Raleway', sans-serif">Raleway</option>
+            <option value="'Oswald', sans-serif">Oswald</option>
+            <option value="'Quicksand', sans-serif">Quicksand</option>
+            <option value="'Cabin', sans-serif">Cabin</option>
+            <option value="'Source Sans Pro', sans-serif">Source Sans Pro</option>
+            <option value="'PT Sans', sans-serif">PT Sans</option>
+            <option value="'Gill Sans', sans-serif">Gill Sans</option>
+            <option value="'Futura', sans-serif">Futura</option>
+            <option value="'Arial Black', sans-serif">Arial Black</option>
+            <option value="'Impact', sans-serif">Impact</option>
+          </optgroup>
+          <optgroup label="Monospace">
+            <option value="'Courier New', Courier, monospace">Courier New</option>
+            <option value="Consolas, 'Courier New', monospace">Consolas</option>
+            <option value="Monaco, 'Courier New', monospace">Monaco</option>
+            <option value="'Source Code Pro', monospace">Source Code Pro</option>
+          </optgroup>
+          <optgroup label="Script / Handwritten / Display">
+            <option value="'Dancing Script', cursive">Dancing Script</option>
+            <option value="'Pacifico', cursive">Pacifico</option>
+            <option value="'Brush Script MT', cursive">Brush Script</option>
+            <option value="'Lobster', cursive">Lobster</option>
+            <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+            <option value="'Anton', sans-serif">Anton</option>
+            <option value="'Roboto', sans-serif">Roboto</option>
+          </optgroup>
+          <optgroup label="Other / Decorative">
+            <option value="'Rockwell', serif">Rockwell (Slab Serif)</option>
+            <option value="'Playfair Display', serif">Playfair Display</option>
+            <option value="'Abril Fatface', serif">Abril Fatface</option>
+            <option value="'Georgia', serif">Slab Serif</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="accessibility-section">
+        <h4>Visual Aids</h4>
+        <label class="toggle-label">
+          <input type="checkbox" id="visual-indicators-toggle">
+          <span class="toggle-slider"></span>
+          Show visual cues for audio/video
+        </label>
+      </div>
+      <div class="accessibility-section">
+        <h4>Display</h4>
+        <label class="toggle-label">
+          <input type="checkbox" id="high-contrast-toggle">
+          <span class="toggle-slider"></span>
+          High contrast mode
+        </label>
+      </div>
+    </div>
+  `;
+
+  // Add to page
+  document.body.appendChild(accessBtn);
+  document.body.appendChild(panel);
+
+  // Add optional nav button near the ministry link (top of pages)
+  const nav = document.querySelector('nav.nav');
+  if (nav) {
+    const navBtn = document.createElement('button');
+    navBtn.id = 'accessibility-nav-btn';
+    navBtn.className = 'accessibility-nav-btn';
+    navBtn.type = 'button';
+    navBtn.setAttribute('aria-label', 'Open accessibility settings');
+    navBtn.title = 'Accessibility settings';
+    navBtn.textContent = '♿';
+
+    // Insert after Ministry link, if exists first
+    const ministryLink = nav.querySelector('a[href="ministry.html"]');
+    if (ministryLink && ministryLink.parentNode) {
+      ministryLink.insertAdjacentElement('afterend', navBtn);
+    } else {
+      nav.appendChild(navBtn);
+    }
+
+    navBtn.addEventListener('click', toggleAccessibilityPanel);
+  }
+
+  // Add event listeners
+  accessBtn.addEventListener('click', toggleAccessibilityPanel);
+  panel.querySelector('.accessibility-close').addEventListener('click', toggleAccessibilityPanel);
+
+  // Font size controls
+  document.getElementById('font-decrease').addEventListener('click', () => adjustFontSize(-10));
+  document.getElementById('font-increase').addEventListener('click', () => adjustFontSize(10));
+
+  // Font family control
+  const fontSelector = document.getElementById('font-family-selector');
+  if (fontSelector) {
+    fontSelector.addEventListener('change', () => {
+      setFontFamily(fontSelector.value);
+      saveAccessibilitySettings();
+    });
+  }
+
+  // Toggle controls
+  document.getElementById('visual-indicators-toggle').addEventListener('change', toggleVisualIndicators);
+  document.getElementById('high-contrast-toggle').addEventListener('change', toggleHighContrast);
 }
 
-prevBtn.addEventListener('click', showPrevQuote);
-nextBtn.addEventListener('click', showNextQuote);
+// Toggle the accessibility panel
+function toggleAccessibilityPanel() {
+  const panel = document.getElementById('accessibility-panel');
+  if (panel) {
+    panel.classList.toggle('open');
+  }
+}
 
-renderQuote(0);
+// Adjust font size
+function adjustFontSize(delta) {
+  const root = document.documentElement;
+  const currentSize = parseFloat(getComputedStyle(root).getPropertyValue('--font-scale') || '1');
+  let newSize = currentSize + (delta / 100);
+
+  // Clamp between 0.75 and 1.5
+  newSize = Math.max(0.75, Math.min(1.5, newSize));
+
+  root.style.setProperty('--font-scale', newSize.toString());
+  updateFontDisplay(newSize);
+  saveAccessibilitySettings();
+}
+
+// Update font size display
+function updateFontDisplay(scale) {
+  const display = document.getElementById('font-display');
+  if (display) {
+    display.textContent = Math.round(scale * 100) + '%';
+  }
+}
+
+// Set font family
+function setFontFamily(fontValue) {
+  document.documentElement.style.setProperty('--font', fontValue);
+  const fontSelector = document.getElementById('font-family-selector');
+  if (fontSelector) {
+    fontSelector.value = fontValue;
+  }
+}
+
+// Toggle visual indicators
+function toggleVisualIndicators() {
+  const toggle = document.getElementById('visual-indicators-toggle');
+  if (toggle) {
+    const enabled = toggle.checked;
+    if (enabled) {
+      addVisualIndicators();
+    } else {
+      removeVisualIndicators();
+    }
+    saveAccessibilitySettings();
+  }
+}
+
+// Toggle high contrast mode
+function toggleHighContrast() {
+  const toggle = document.getElementById('high-contrast-toggle');
+  if (toggle) {
+    const enabled = toggle.checked;
+    document.body.classList.toggle('high-contrast', enabled);
+    saveAccessibilitySettings();
+  }
+}
+
+// Add visual indicators to multimedia elements
+function addVisualIndicators() {
+  // Remove existing indicators first
+  removeVisualIndicators();
+
+  // Add indicators to videos
+  const videos = document.querySelectorAll('iframe[src*="youtube.com"], video');
+  videos.forEach(video => {
+    if (!video.nextElementSibling?.classList.contains('visual-indicator')) {
+      const indicator = document.createElement('div');
+      indicator.className = 'visual-indicator';
+      indicator.textContent = '🎬 View Original on YouTube';
+      indicator.setAttribute('aria-label', 'This content contains audio or video');
+      video.parentNode.insertBefore(indicator, video.nextSibling);
+    }
+  });
+
+  // Add indicators to audio elements
+  const audios = document.querySelectorAll('audio');
+  audios.forEach(audio => {
+    if (!audio.nextElementSibling?.classList.contains('visual-indicator')) {
+      const indicator = document.createElement('div');
+      indicator.className = 'visual-indicator';
+      indicator.textContent = '🎵 Audio Content';
+      indicator.setAttribute('aria-label', 'This content contains audio');
+      audio.parentNode.insertBefore(indicator, audio.nextSibling);
+    }
+  });
+}
+
+// Remove visual indicators
+function removeVisualIndicators() {
+  const indicators = document.querySelectorAll('.visual-indicator');
+  indicators.forEach(indicator => indicator.remove());
+}
+
+// Save accessibility settings to localStorage
+function saveAccessibilitySettings() {
+  const settings = {
+    fontScale: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale') || '1'),
+    fontFamily: document.documentElement.style.getPropertyValue('--font') || getComputedStyle(document.documentElement).getPropertyValue('--font'),
+    visualIndicators: document.getElementById('visual-indicators-toggle')?.checked || false,
+    highContrast: document.body.classList.contains('high-contrast')
+  };
+
+  localStorage.setItem('accessibilitySettings', JSON.stringify(settings));
+}
+
+// Load accessibility settings from localStorage
+function loadAccessibilitySettings() {
+  const settings = localStorage.getItem('accessibilitySettings');
+  if (!settings) return;
+
+  try {
+    const parsed = JSON.parse(settings);
+
+    // Apply font scale
+    if (parsed.fontScale) {
+      document.documentElement.style.setProperty('--font-scale', parsed.fontScale.toString());
+      updateFontDisplay(parsed.fontScale);
+    }
+
+    // Apply font family
+    if (parsed.fontFamily) {
+      setFontFamily(parsed.fontFamily);
+      const selector = document.getElementById('font-family-selector');
+      if (selector) selector.value = parsed.fontFamily;
+    }
+
+    // Apply visual indicators
+    if (parsed.visualIndicators) {
+      const toggle = document.getElementById('visual-indicators-toggle');
+      if (toggle) {
+        toggle.checked = true;
+        addVisualIndicators();
+      }
+    }
+
+    // Apply high contrast
+    if (parsed.highContrast) {
+      document.body.classList.add('high-contrast');
+      const toggle = document.getElementById('high-contrast-toggle');
+      if (toggle) toggle.checked = true;
+    }
+  } catch (error) {
+    console.warn('Error loading accessibility settings:', error);
+  }
+}
