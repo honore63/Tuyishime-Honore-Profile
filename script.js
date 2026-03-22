@@ -114,7 +114,8 @@ async function getChatResponse(message) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
-            parts: [{ text: `SYSTEM INSTRUCTIONS: You are the AI Assistant for TUYISHIME HONORE'S profile website. Your purpose is to represent him professionally and help users explore his journey.
+            parts: [{
+              text: `SYSTEM INSTRUCTIONS: You are the AI Assistant for TUYISHIME HONORE'S profile website. Your purpose is to represent him professionally and help users explore his journey.
 
 MANDATORY RULES:
 1. TRUTH & INTEGRITY: Provide ONLY real, verified information from the website. Never guess or invent facts. If information is missing, say: "This information is not available on the website."
@@ -137,7 +138,8 @@ LOCATION-BASED CONTEXT FROM CURRENT PAGE:
 ${pageContext}
 
 USER'S MESSAGE:
-${message}` }]
+${message}`
+            }]
           }]
         })
       });
@@ -242,7 +244,7 @@ function loadVideo(videoId) {
 
 async function initVideos() {
   if (!videoGrid) return; // Only initialize if element exists
-  
+
   videos.forEach((video) => {
     videoGrid.appendChild(createCard(video));
   });
@@ -271,7 +273,7 @@ async function initVideos() {
     setNowPlaying(title);
     loadVideo(first.id);
     const firstCard = videoGrid.querySelector('.video-card');
-    if(firstCard) firstCard.classList.add('active-video');
+    if (firstCard) firstCard.classList.add('active-video');
   }
 
   videoGrid.addEventListener('click', (event) => {
@@ -329,13 +331,13 @@ function createBotMessage(text) {
 function createUserMessage(text) {
   const messageWrapper = document.createElement('div');
   messageWrapper.className = 'ai-message-wrapper user-wrapper';
-  
+
   const bubble = document.createElement('div');
   bubble.className = 'ai-message-bubble user';
   bubble.textContent = text;
-  
+
   messageWrapper.appendChild(bubble);
-  
+
   return messageWrapper;
 }
 
@@ -362,14 +364,14 @@ function appendChatMessageEnhanced(text, sender) {
 // Set user role (Local only)
 function setUserRole(role) {
   chatState.userRole = role;
-  
+
   let roleLabel = 'General visitor';
   if (role === 'teacher') roleLabel = 'Educator';
   if (role === 'student') roleLabel = 'Student/Learner';
   if (role === 'collaborator') roleLabel = 'Collaborator';
-  
+
   console.log(`Role set to: ${roleLabel}`);
-  
+
   // Optional: show a brief confirmation
   const roleEl = document.getElementById('ai-user-role');
   if (roleEl) {
@@ -399,7 +401,7 @@ function scanPageContent() {
 
 function getFallbackResponse(message) {
   const lower = message.trim().toLowerCase();
-  
+
   // Dynamic Agent Reasoning Simulation
   const reasoningSteps = [
     "🔍 Scanning current page for context...",
@@ -412,14 +414,14 @@ function getFallbackResponse(message) {
   // Specific Knowledge Extraction (Simulating Agent Capability)
   const pageContext = scanPageContent();
   const docs = chatState.uploadedDocuments.length > 0 ? `(Agent: Referenced ${chatState.uploadedDocuments.join(", ")})` : "";
-  
+
   const patterns = [
-    { 
-      test: /\b(hi|hello|hey|greetings|good morning|good afternoon|good evening|who are you|introduce|intro|about you|who is honore)\b/, 
-      reply: `Hello there! It's so good to connect with you. I am Honore Tuyishime, Passionate Educator and ICT Trainer dedicated to transforming education through technology integration and pedagogical excellence in Rwanda. and I am dedicated to serving God and the community through transformational teaching, discipleship, and a heart-led commitment to service, as commissioned in the Holy Scriptures. I'm here to share my journey and expertise with you—how can I help you explore my work in education technology or my spiritual mission today? ${docs}` 
+    {
+      test: /\b(hi|hello|hey|greetings|good morning|good afternoon|good evening|who are you|introduce|intro|about you|who is honore)\b/,
+      reply: `Hello there! It's so good to connect with you. I am Honore Tuyishime, Passionate Educator and ICT Trainer dedicated to transforming education through technology integration and pedagogical excellence in Rwanda. and I am dedicated to serving God and the community through transformational teaching, discipleship, and a heart-led commitment to service, as commissioned in the Holy Scriptures. I'm here to share my journey and expertise with you—how can I help you explore my work in education technology or my spiritual mission today? ${docs}`
     },
-    { 
-      test: /\b(education|study|studied|school|university|academic|background|learn)\b/i, 
+    {
+      test: /\b(education|study|studied|school|university|academic|background|learn)\b/i,
       reply: `I have a comprehensive educational foundation that bridges pedagogy and technology:
 • **Primary Education (2011-2016):** GS Kagitumba (Primary School Certificate).
 • **Ordinary Level (2017-2019):** GS Kagitumba (O-Level Certificate).
@@ -427,47 +429,47 @@ function getFallbackResponse(message) {
 • **Teaching Residency (2023-2024):** TTC De La Salle (Byumba), Primary Teaching Residency Program Pilot (PTRP) with international partners.
 • **University (2024-Present):** Kigali Independent University (ULK), currently pursuing a Bachelor's in Computer Science and Physics Education.
 
-Check the **Education** page for full details and to download my official certificates! ${docs}` 
+Check the **Education** page for full details and to download my official certificates! ${docs}`
     },
-    { 
-      test: /\b(cv|resume|background|experience|qualification|work history)\b/i, 
-      reply: `I currently teach STEM subjects at Rukara Model School and serve as an ICT trainer with PISQUARE/Edify. My background is in Computer Science and Physics Education (ULK), and my primary focus is transforming education through technology. I've trained over 100 teachers in digital literacy so far! ${docs}` 
+    {
+      test: /\b(cv|resume|background|experience|qualification|work history)\b/i,
+      reply: `I currently teach STEM subjects at Rukara Model School and serve as an ICT trainer with PISQUARE/Edify. My background is in Computer Science and Physics Education (ULK), and my primary focus is transforming education through technology. I've trained over 100 teachers in digital literacy so far! ${docs}`
     },
-    { 
-      test: /\b(certificat|diploma|credential|training|qualification)\b/i, 
-      reply: `I have built a strong professional profile through a wide range of specialized certifications. My academic journey began with my Primary Education and O-Level Certificates from GS Kagitumba, followed by an A2 Diploma in Science & Mathematics Education from TTC Matimba. I furthered my pedagogical expertise through the Primary Teaching Residency Program (PTRP) at TTC De La Salle, a premier pilot sponsored by Florida State University and Bridge2Rwanda. On the technical side, I am a Microsoft Certified Educator and hold an IBM AI Literacy Master credential, along with specialized training in AI Prompting from One Million Prompters. Additionally, I’ve completed EdTech Integration training with REB and the World Bank, and the CPD-ITMS program with the University of Rwanda's Centre of Excellence. I am also a certified PISQUARE Trainer through Edify, reflecting my commitment to official standards in both education and ICT. ${docs}` 
+    {
+      test: /\b(certificat|diploma|credential|training|qualification)\b/i,
+      reply: `I have built a strong professional profile through a wide range of specialized certifications. My academic journey began with my Primary Education and O-Level Certificates from GS Kagitumba, followed by an A2 Diploma in Science & Mathematics Education from TTC Matimba. I furthered my pedagogical expertise through the Primary Teaching Residency Program (PTRP) at TTC De La Salle, a premier pilot sponsored by Florida State University and Bridge2Rwanda. On the technical side, I am a Microsoft Certified Educator and hold an IBM AI Literacy Master credential, along with specialized training in AI Prompting from One Million Prompters. Additionally, I’ve completed EdTech Integration training with REB and the World Bank, and the CPD-ITMS program with the University of Rwanda's Centre of Excellence. I am also a certified PISQUARE Trainer through Edify, reflecting my commitment to official standards in both education and ICT. ${docs}`
     },
-    { 
-      test: /\b(contact|email|phone|reach|connect)\b/, 
-      reply: `You can reach me personally at +250 791 684 429 or tuyishimehonore63@gmail.com. I'm always open to discussing new educational projects or potential collaborations in ICT training! ${docs}` 
+    {
+      test: /\b(contact|email|phone|reach|connect)\b/,
+      reply: `You can reach me personally at +250 791 684 429 or tuyishimehonore63@gmail.com. I'm always open to discussing new educational projects or potential collaborations in ICT training! ${docs}`
     },
-    { 
-      test: /\b(ministry|church|god|scripture|verse|discipleship)\b/, 
-      reply: `My life and service are grounded in Matthew 28:19 and Acts 1:8. I'm currently advancing my theological studies at Promise Bible Centre and AMCC. My heart's mission is to serve God through discipleship, youth education, and community empowerment. ${docs}` 
+    {
+      test: /\b(ministry|church|god|scripture|verse|discipleship)\b/,
+      reply: `My life and service are grounded in Matthew 28:19 and Acts 1:8. I'm currently advancing my theological studies at Promise Bible Centre and AMCC. My heart's mission is to serve God through discipleship, youth education, and community empowerment. ${docs}`
     },
-    { 
-      test: /\b(project|developer|tech|coding|web|app)\b/, 
-      reply: `My development work spans from pedagogical web apps like the Digital Lesson Plan to tutorial-based ICT resources. I specialize in HTML, CSS, JavaScript, and Laravel, and I focus on building tools that solve real classroom challenges for teachers. ${docs}` 
+    {
+      test: /\b(project|developer|tech|coding|web|app)\b/,
+      reply: `My development work spans from pedagogical web apps like the Digital Lesson Plan to tutorial-based ICT resources. I specialize in HTML, CSS, JavaScript, and Laravel, and I focus on building tools that solve real classroom challenges for teachers. ${docs}`
     },
-    { 
-      test: /\b(language|speak|talk|english|kinyarwanda|french)\b/i, 
-      reply: `I am fluent in English and Kinyarwanda, both at an excellent level for professional and personal communication. I also have a good command of French. This allows me to connect with a wide range of educators and partners! ${docs}` 
+    {
+      test: /\b(language|speak|talk|english|kinyarwanda|french)\b/i,
+      reply: `I am fluent in English and Kinyarwanda, both at an excellent level for professional and personal communication. I also have a good command of French. This allows me to connect with a wide range of educators and partners! ${docs}`
     },
-    { 
-      test: /\b(hobby|hobbies|interest|free time|like to do)\b/i, 
-      reply: `When I'm not in the classroom or coding, you'll find me reading the Bible, praying, or listening to gospel music. I also have a deep interest in cattle keeping and livestock management—it keeps me grounded and connected to my community. Of course, I'm always exploring new technologies too! ${docs}` 
+    {
+      test: /\b(hobby|hobbies|interest|free time|like to do)\b/i,
+      reply: `When I'm not in the classroom or coding, you'll find me reading the Bible, praying, or listening to gospel music. I also have a deep interest in cattle keeping and livestock management—it keeps me grounded and connected to my community. Of course, I'm always exploring new technologies too! ${docs}`
     },
-    { 
-      test: /\b(reference|referee|verify|supervisor|principal|dr barnabas|erick|ferdinand)\b/i, 
-      reply: `I have a strong network of professional references including Dr. Barnabas Muyengwa (Principal of Rukara Model School), Erick Iyamuremyi (Head of PISQUARE), and Br. Ferdinand Biziyaremye (PTRP Coordinator). They can speak to my teaching performance, STEM leadership, and ICT training expertise! ${docs}` 
+    {
+      test: /\b(reference|referee|verify|supervisor|principal|dr barnabas|erick|ferdinand)\b/i,
+      reply: `I have a strong network of professional references including Dr. Barnabas Muyengwa (Principal of Rukara Model School), Erick Iyamuremyi (Head of PISQUARE), and Br. Ferdinand Biziyaremye (PTRP Coordinator). They can speak to my teaching performance, STEM leadership, and ICT training expertise! ${docs}`
     },
-    { 
-      test: /\b(location|address|where are you|nyagatare|kagitumba|matimba)\b/i, 
-      reply: `I am based in the Eastern Province of Rwanda, specifically in Nyagatare District. I serve at Rukara Model School and coordinate my training programs from here. ${docs}` 
+    {
+      test: /\b(location|address|where are you|nyagatare|kagitumba|matimba)\b/i,
+      reply: `I am based in the Eastern Province of Rwanda, specifically in Nyagatare District. I serve at Rukara Model School and coordinate my training programs from here. ${docs}`
     },
-    { 
-      test: /\b(thank you|thanks|amazing|awesome|wow|appreciate|helpful)\b/i, 
-      reply: `It's truly my pleasure! I'm so glad I could help. Please let me know if there's anything else you'd like to dive into! ${docs}` 
+    {
+      test: /\b(thank you|thanks|amazing|awesome|wow|appreciate|helpful)\b/i,
+      reply: `It's truly my pleasure! I'm so glad I could help. Please let me know if there's anything else you'd like to dive into! ${docs}`
     }
   ];
 
@@ -594,7 +596,7 @@ async function getChatResponse(message) {
 
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content;
-    
+
     if (!aiResponse) {
       console.warn('⚠️ No response content from OpenAI');
       return getFallbackResponse(message);
@@ -705,7 +707,7 @@ function initChat() {
       // Small artificial delay for realism
       await new Promise(resolve => setTimeout(resolve, 1000));
       typingIndicator.remove();
-      
+
       const response = await getChatResponse(value);
       appendChatMessageEnhanced(response, 'bot');
     } catch (error) {
@@ -813,15 +815,15 @@ function initHeroQuotes() {
   function updateHeroQuote() {
     // Fade out
     heroContainer.classList.remove('fade-in');
-    
+
     setTimeout(() => {
       const q = quotes[currentHeroIdx];
       heroText.textContent = `“${q.text}”`;
       heroAuthor.textContent = `— ${q.author}`;
-      
+
       // Fade in
       heroContainer.classList.add('fade-in');
-      
+
       // Prep next
       currentHeroIdx = (currentHeroIdx + 1) % quotes.length;
     }, 800); // Wait for fade-out to finish
