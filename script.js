@@ -642,7 +642,7 @@ function initChat() {
   // Make toggle button use a small avatar when collapsed
   if (!toggle.querySelector('.ai-avatar-mini')) {
     const avatar = document.createElement('img');
-    avatar.src = 'Images/WhatsApp Image 2026-03-10 at 12.18.51 PM (1).jpeg';
+    avatar.src = 'Images/profile-photo.jpg';
     avatar.alt = 'AI chat';
     avatar.className = 'ai-avatar-mini';
     avatar.role = 'button';
