@@ -1,32 +1,6 @@
 {
   "version": 2,
   "name": "honore-profile-web",
-  "builds": [
-    {
-      "src": "**/*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "script.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "styles.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "Images/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "Certicifacates/**",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "Document/**",
-      "use": "@vercel/static"
-    }
-  ],
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/about", "destination": "/about.html" },
